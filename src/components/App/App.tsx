@@ -3,6 +3,9 @@ import { Toaster, toast } from 'react-hot-toast';
 
 import SearchBar from '../SearchBar/SearchBar';
 import MovieGrid from '../MovieGrid/MovieGrid';
+import Loader from '../Loader/Loader';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import MovieModal from '../MovieModal/MovieModal';
 
 import { fetchMovies } from '../../services/movieService';
 import type { Movie } from '../../types/movie';
@@ -11,17 +14,17 @@ import css from './App.module.css';
 
 function App() {
   const [movies, setMovies] = useState<Movie[]>([]);
-  const [, setSelectedMovie] = useState<Movie | null>(null);
+  const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
 
   const handleSearch = async (query: string): Promise<void> => {
-    // Очищаем предыдущий поиск
     setMovies([]);
     setSelectedMovie(null);
+    setIsError(false);
+    setIsLoading(true);
 
     try {
-      setIsLoading(true);
-
       const data = await fetchMovies(query);
 
       if (data.length === 0) {
@@ -32,7 +35,7 @@ function App() {
       setMovies(data);
     } catch (error) {
       console.error(error);
-      toast.error('Something went wrong.');
+      setIsError(true);
     } finally {
       setIsLoading(false);
     }
@@ -40,16 +43,27 @@ function App() {
 
   const handleSelectMovie = (movie: Movie): void => {
     setSelectedMovie(movie);
-    console.log(movie);
+  };
+
+  const handleCloseModal = (): void => {
+    setSelectedMovie(null);
   };
 
   return (
     <div className={css.app}>
       <SearchBar onSubmit={handleSearch} />
 
-      {isLoading && <p>Loading...</p>}
+      {isLoading ? (
+        <Loader />
+      ) : isError ? (
+        <ErrorMessage />
+      ) : (
+        <MovieGrid movies={movies} onSelect={handleSelectMovie} />
+      )}
 
-      <MovieGrid movies={movies} onSelect={handleSelectMovie} />
+      {selectedMovie !== null && (
+        <MovieModal movie={selectedMovie} onClose={handleCloseModal} />
+      )}
 
       <Toaster position="top-right" />
     </div>
